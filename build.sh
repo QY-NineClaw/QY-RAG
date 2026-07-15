@@ -623,7 +623,7 @@ do_export() {
 # ── 主菜单 ────────────────────────────────────────────────────────────────
 
 while true; do
-  CHOICE=$(whiptail --title "NineClaw 构建工具" \
+  CHOICE=$(whiptail --title "RAGFLOW 构建工具" \
     --ok-button "进入[Enter]" --cancel-button "退出[ESC]" \
     --menu "请选择功能：" 12 50 2 \
     "1" "系统集成打包" \
