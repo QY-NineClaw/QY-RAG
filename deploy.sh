@@ -146,13 +146,6 @@ do_install() {
     cp "$ENV_EXAMPLE" "$ENV_FILE"
   fi
   validate_env_required || return
-  configure_public_ip_or_domain || return
-
-  # 2. 创建 skills_storage 目录
-  local skills_dir="$SCRIPT_DIR/skills_storage"
-  mkdir -p "$skills_dir"
-  chmod 777 "$skills_dir"
-  echo "✓ skills_storage 目录已就绪：$skills_dir"
 
   # 3. 创建 Docker 网络
   clear

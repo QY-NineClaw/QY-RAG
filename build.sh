@@ -52,7 +52,7 @@ PUBLIC_IMAGES=(
 load_env_for_images() {
   if [ ! -f "$ENV_FILE" ]; then
     whiptail --title ".env 缺失" --ok-button "确认[Enter]" \
-      --msgbox "未找到 .env 文件。\n\n请先执行：\n  cp env.example .env\n\n然后确认 .env 中的 NINECLAW_IMAGE 已设置为合适的镜像 tag。" 12 68
+      --msgbox "未找到 .env 文件。\n\n请先执行：\n  cp env.example .env\n\n然后确认 .env 中的 RAGFLOW_IMAGE 已设置为合适的镜像 tag。" 12 68
     return 1
   fi
 
@@ -60,19 +60,10 @@ load_env_for_images() {
   image=$(grep '^RAGFLOW_IMAGE=' "$ENV_FILE" | tail -1 | cut -d= -f2- | tr -d '"' | tr -d "'")
   image="${image// /}"
   if [ -z "$image" ]; then
-    whiptail --title "NINECLAW_IMAGE 缺失" --ok-button "确认[Enter]" \
-      --msgbox ".env 中未设置 NINECLAW_IMAGE。\n\n请先执行或检查：\n  cp env.example .env\n\n然后设置：\n  NINECLAW_IMAGE=nineclaw:你的版本号" 13 68
+    whiptail --title "RAGFLOW_IMAGE 缺失" --ok-button "确认[Enter]" \
+      --msgbox ".env 中未设置 RAGFLOW_IMAGE。\n\n请先执行或检查：\n  cp env.example .env\n\n然后设置：\n  RAGFLOW_IMAGE=qy-rag:你的版本号" 13 68
     return 1
   fi
-
-  export NINECLAW_IMAGE="$image"
-  for i in "${!COMPONENTS[@]}"; do
-    IFS='|' read -r name url dir branch services images <<< "${COMPONENTS[$i]}"
-    if [ "$name" = "NineClaw-Runtime" ]; then
-      COMPONENTS[$i]="$name|$url|$dir|$branch|$services|$NINECLAW_IMAGE"
-      break
-    fi
-  done
 }
 
 # 带进度条执行任务列表
@@ -243,13 +234,6 @@ select_images() {
 do_build() {
   load_env_for_images || return
 
-  # 检查 Git 凭据
-  if ! git config --global credential.helper &>/dev/null; then
-    if whiptail --title "Git 凭据" --yes-button "确认[Enter]" --no-button "取消[ESC]" --yesno "未检测到 Git 凭据缓存，是否启用？\n（启用后只需输入一次账号密码）" 9 55; then
-      git config --global credential.helper store
-    fi
-  fi
-
   # 选择打包范围
   if whiptail --title "打包模式" \
     --yes-button "完整打包" --no-button "局部打包" \
@@ -286,106 +270,7 @@ do_build() {
   : > "$LOG_FILE"
   log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG_FILE"; }
 
-  # 阶段一：clone/fetch（用 fetch --all 确保拿到所有远程分支信息）
-  clear
-  echo "========================================"
-  echo " 拉取代码"
-  echo "========================================"
-  log "=== 开始拉取代码 ==="
-  local pull_failed=0
-  local total_pull=${#SELECTED_NAMES[@]}
-  for i in "${!SELECTED_NAMES[@]}"; do
-    local name="${SELECTED_NAMES[$i]}"
-    local dir="${COMP_DIR[$name]}" url="${COMP_URL[$name]}"
-    echo ""
-    echo "── [$(( i + 1 ))/$total_pull] $name ──"
-    log "[INFO] 开始拉取：$name ($url)"
-    if [ -d "$CODES_DIR/$dir" ]; then
-      git -C "$CODES_DIR/$dir" config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
-      git -C "$CODES_DIR/$dir" fetch --all --progress 2>&1 | tee -a "$LOG_FILE"
-    else
-      git clone --progress "$url" "$CODES_DIR/$dir" 2>&1 | tee -a "$LOG_FILE"
-      git -C "$CODES_DIR/$dir" config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
-      git -C "$CODES_DIR/$dir" fetch --all --progress 2>&1 | tee -a "$LOG_FILE"
-    fi
-    if [ ${PIPESTATUS[0]} -ne 0 ]; then
-      log "[ERROR] 拉取失败：$name"
-      echo "[ERROR] 拉取失败：$name"
-      pull_failed=1
-    else
-      log "[INFO] 拉取完成：$name"
-    fi
-  done
-
-  if [ $pull_failed -ne 0 ]; then
-    log "=== 拉取阶段出现错误，终止 ==="
-    echo ""
-    read -rp "拉取出现错误，按 Enter 返回..."
-    return
-  fi
-  log "=== 拉取代码完成 ==="
-
-  echo ""
-  echo "========================================"
-  echo " 全部拉取完成，请选择分支"
-  echo "========================================"
-
-  # 阶段二：选分支（本地查询）
-  select_branches || return
-
-  # checkout 到选定分支
-  clear
-  echo "========================================"
-  echo " 切换分支"
-  echo "========================================"
-  log "=== 开始切换分支 ==="
-  local checkout_failed=0
-  for name in "${SELECTED_NAMES[@]}"; do
-    local dir="${COMP_DIR[$name]}" branch="${SELECTED_BRANCHES[$name]}"
-    COMP_BRANCH["$name"]="$branch"
-    echo ""
-    echo "── $name @ $branch ──"
-    log "[INFO] 切换：$name → $branch"
-    git -C "$CODES_DIR/$dir" reset --hard "origin/$branch" 2>&1 | tee -a "$LOG_FILE" \
-      && git -C "$CODES_DIR/$dir" submodule update --init --recursive 2>&1 | tee -a "$LOG_FILE"
-    if [ ${PIPESTATUS[0]} -ne 0 ]; then
-      log "[ERROR] 切换失败：$name @ $branch"
-      echo "[ERROR] 切换失败：$name @ $branch"
-      checkout_failed=1
-    else
-      log "[INFO] 切换完成：$name @ $branch"
-    fi
-  done
-
-  if [ $checkout_failed -ne 0 ]; then
-    log "=== 切换分支出现错误，终止 ==="
-    echo ""
-    read -rp "切换分支出现错误，按 Enter 返回..."
-    return
-  fi
-  log "=== 切换分支完成 ==="
-
-  echo ""
-  echo "========================================"
-  echo " 全部切换完成"
-  echo "========================================"
-
-  # 展示各组件 HEAD commit 信息，让用户确认
-  local commit_info=""
-  for name in "${SELECTED_NAMES[@]}"; do
-    local dir="${COMP_DIR[$name]}" br="${COMP_BRANCH[$name]}"
-    local logline
-    logline=$(git -C "$CODES_DIR/$dir" log -1 --pretty=format:"%h %s" HEAD 2>/dev/null || echo "（无法获取）")
-    commit_info+="[$name @ $br]\n  $logline\n\n"
-    log "[INFO] HEAD commit $name: $logline"
-  done
-
-  whiptail --title "确认最后一次提交" \
-    --yes-button "开始构建[Enter]" --no-button "取消[ESC]" \
-    --yesno "${commit_info}确认以上 commit 后开始构建镜像？" \
-    $(( ${#SELECTED_NAMES[@]} * 3 + 10 )) 70 || return
-
-  # 阶段三：构建镜像（逐个构建，显示进度）
+  # 构建镜像（逐个构建，显示进度）
   clear
   echo "========================================"
   echo " 构建镜像（共 ${#BUILD_SVCS[@]} 个服务）"
@@ -575,7 +460,7 @@ do_export() {
 
   if [ "$PACK_MODE" = "2" ]; then
     # ── 文件命名（循环，支持返回重填）────────────────────────────────
-    local default_name="nineclaw-images-bundle-$(date '+%Y%m%d').tar.gz"
+    local default_name="qy-rag-images-bundle-$(date '+%Y%m%d').tar.gz"
     local bundle_name bundle
     while true; do
       bundle_name=$(whiptail --title "保存文件名" \
