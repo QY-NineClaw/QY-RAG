@@ -13,6 +13,8 @@ import { Routes } from '@/routes';
 import { TFunction } from 'i18next';
 import {
   LucideBox,
+  LucideLogOut,
+  LucideMessagesSquare,
   LucideServer,
   LucideUnplug,
   LucideUser,
@@ -27,6 +29,11 @@ const menuItems = (t: TFunction) => [
     icon: <LucideServer className="size-[1em]" />,
     label: t('setting.dataSources'),
     key: Routes.DataSource,
+  },
+  {
+    icon: <LucideMessagesSquare className="size-[1em]" />,
+    label: t('setting.chatChannels'),
+    key: Routes.ChatChannel,
   },
   {
     icon: <LucideBox className="size-[1em]" />,
@@ -54,14 +61,6 @@ const menuItems = (t: TFunction) => [
     label: t('setting.api'),
     key: Routes.Api,
   },
-  // {
-  //   icon: MessageSquareQuote,
-  //   label: 'Prompt Templates',
-  //   key: Routes.Profile,
-  // },
-  // { icon: TextSearch, label: 'Retrieval Templates', key: Routes.Profile },
-  // { icon: Cog, label: t('setting.system'), key: Routes.System },
-  // { icon: Banknote, label: 'Plan', key: Routes.Plan },
 ];
 
 export function SideBar() {
@@ -77,43 +76,50 @@ export function SideBar() {
   const { logout } = useLogout();
 
   return (
-    <aside className="w-[303px] bg-bg-base rounded-3xl shadow-none flex flex-col overflow-hidden">
-      <header className="px-6 pt-5 pb-4">
-        <div className="flex gap-3 items-center">
+    <aside className="shrink-0 w-16 md:w-[303px] bg-bg-base rounded-3xl shadow-none flex flex-col overflow-hidden">
+      <header className="px-2 pt-5 pb-4 md:px-6">
+        <div className="flex items-center justify-center gap-3 md:justify-start">
           <RAGFlowAvatar
             avatar={userInfo?.avatar}
             name={userInfo?.nickname}
             isPerson
             className="size-9"
           />
-          <div className="flex flex-col min-w-0">
-            <p className="text-sm font-medium text-text-primary truncate">{userInfo?.nickname}</p>
-            <p className="text-xs text-text-secondary truncate">{userInfo?.email}</p>
+          <div className="hidden flex-col min-w-0 md:flex">
+            <p className="text-sm font-medium text-text-primary truncate">
+              {userInfo?.nickname}
+            </p>
+            <p className="text-xs text-text-secondary truncate">
+              {userInfo?.email}
+            </p>
           </div>
         </div>
       </header>
 
-      <nav className="flex-1 overflow-auto p-3">
-        <ul className="flex flex-col gap-1">
+      <nav className="flex-1 overflow-auto p-2 md:p-3">
+        <ul className="flex flex-col items-center gap-1 md:items-stretch">
           {menuItems(t).map((item) => {
             const { key, icon, label, ...rest } = item;
 
             return (
-              <li key={key}>
+              <li key={key} className="w-full md:w-auto">
                 <Button
                   {...rest}
                   block
                   variant="ghost"
+                  aria-label={label}
                   className={cn(
-                    'justify-start gap-3 px-3 relative h-9 text-sm font-medium rounded-lg',
+                    'relative h-9 text-sm font-medium rounded-lg max-md:size-10 max-md:p-0 max-md:justify-center md:justify-start md:gap-3 md:px-3',
                     activeItemKey === key
                       ? 'bg-accent-primary text-bg-base hover:bg-accent-primary'
                       : 'text-text-secondary hover:text-text-primary hover:bg-bg-card',
                   )}
                   onClick={handleMenuClick(key)}
                 >
-                  {icon}
-                  <span>{label}</span>
+                  <span className="flex items-center gap-3 max-md:gap-0">
+                    {icon}
+                    <span className="hidden md:inline">{label}</span>
+                  </span>
                 </Button>
               </li>
             );
@@ -121,14 +127,22 @@ export function SideBar() {
         </ul>
       </nav>
 
-      <footer className="px-3 pb-3 pt-2">
-        <div className="flex items-center gap-2 mb-2 px-3 justify-between">
+      <footer className="p-2 pt-2 md:px-3 md:pb-3">
+        <div className="hidden items-center gap-2 mb-2 px-3 justify-between md:flex">
           <span className="text-xs text-text-secondary">{version}</span>
           <ThemeSwitch />
         </div>
 
-        <Button block size="sm" variant="ghost" className="text-text-secondary hover:text-text-primary" onClick={() => logout()}>
-          {t('setting.logout')}
+        <Button
+          block
+          size="sm"
+          variant="ghost"
+          aria-label={t('setting.logout')}
+          className="text-text-secondary hover:text-text-primary max-md:size-10 max-md:p-0 max-md:mx-auto max-md:justify-center"
+          onClick={() => logout()}
+        >
+          <LucideLogOut className="size-[1em] md:hidden" />
+          <span className="hidden md:inline">{t('setting.logout')}</span>
         </Button>
       </footer>
     </aside>

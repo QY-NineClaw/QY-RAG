@@ -27,6 +27,7 @@ import { isEmpty } from 'lodash';
 import { Atom, Bot, ChevronDown, ChevronUp } from 'lucide-react';
 import { DocumentDownloadButton } from '../document-download-button';
 import MarkdownContent from '../next-markdown-content';
+import { RAGFlowAvatar } from '../ragflow-avatar';
 import { useTheme } from '../theme-provider';
 import { Button } from '../ui/button';
 import { AssistantGroupButton, UserGroupButton } from './group-button';
@@ -65,6 +66,7 @@ function MessageItem({
   reference,
   loading = false,
   agentName,
+  avatarDialog,
   sendLoading = false,
   clickDocumentButton,
   removeMessageById,
@@ -180,17 +182,23 @@ function MessageItem({
             [styles.messageItemContentReverse]: item.role === MessageType.User,
           })}
         >
-          {visibleAvatar && isAssistant && (
-            <div
-              className="
-                flex size-10 shrink-0 items-center justify-center rounded-full
-                bg-accent-primary text-bg-base shadow-surface
-              "
-              aria-label={agentName || 'AI'}
-            >
-              <Bot className="size-5" />
-            </div>
-          )}
+          {visibleAvatar &&
+            isAssistant &&
+            (avatarDialog ? (
+              <RAGFlowAvatar
+                className="size-10 shrink-0"
+                avatar={avatarDialog}
+                name={agentName}
+                isPerson
+              />
+            ) : (
+              <div
+                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-primary text-bg-base shadow-surface"
+                aria-label={agentName || 'AI'}
+              >
+                <Bot className="size-5" />
+              </div>
+            ))}
           <section className="flex-col gap-2 flex-1">
             <div className="flex justify-between items-center">
               {isShare && isAssistant && (

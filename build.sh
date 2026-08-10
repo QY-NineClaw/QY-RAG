@@ -36,7 +36,7 @@ fi
 
 # 组件定义: 名称|仓库URL|目录|分支|compose服务(空格分隔)|镜像(空格分隔)
 COMPONENTS=(
-  "QY-RAG|https://github.com/QY-NineClaw/QY-RAG|QY-RAG|main|ragflow|qy-rag:v0.26.0"
+  "QY-RAG|https://github.com/QY-NineClaw/QY-RAG|QY-RAG|main|ragflow|qy-rag:v0.26.1"
 )
 
 # 公开镜像（仅供导出功能使用）

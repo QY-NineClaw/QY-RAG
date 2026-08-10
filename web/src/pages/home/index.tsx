@@ -24,6 +24,7 @@ import {
   LucideFiles,
   LucideMemoryStick,
   LucideMessageSquareText,
+  LucideMessagesSquare,
   LucidePlug,
   LucideSearch,
   LucideServer,
@@ -85,6 +86,11 @@ const settingItems: {
     icon: <LucideServer className="size-[1em]" />,
     labelKey: 'setting.dataSources',
     key: Routes.DataSource,
+  },
+  {
+    icon: <LucideMessagesSquare className="size-[1em]" />,
+    labelKey: 'setting.chatChannels',
+    key: Routes.ChatChannel,
   },
   {
     icon: <LucideBox className="size-[1em]" />,

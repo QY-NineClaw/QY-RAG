@@ -75,7 +75,7 @@ const resolveLanguageCode = (
 };
 
 export const DEFAULT_LANGUAGE_CODE = resolveLanguageCode(
-  import.meta.env.VITE_DEFAULT_LANGUAGE_CODE,
+  import.meta.env?.VITE_DEFAULT_LANGUAGE_CODE,
 );
 
 const resources = {

@@ -14,6 +14,6 @@ RUN --mount=type=cache,target=/root/.npm,sharing=locked \
     VITE_MINIFY=esbuild \
     npm run build
 
-FROM infiniflow/ragflow:v0.26.0
+FROM infiniflow/ragflow:v0.26.1
 
 COPY --from=web-builder /build/web/dist /ragflow/web/dist

@@ -22,8 +22,12 @@ import { Loader2Icon, PenLine } from 'lucide-react';
 import { FC, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { UserSettingBreadcrumb, UserSettingPageWrapper } from '../components/user-setting-breadcrumb';
+import {
+  UserSettingBreadcrumb,
+  UserSettingPageWrapper,
+} from '../components/user-setting-breadcrumb';
 import { ProfileSettingWrapperCard } from '../components/user-setting-header';
+import { NICKNAME_MAX_LENGTH, NICKNAME_PATTERN } from './constants';
 import { EditType, modalTitle, useProfile } from './hooks/use-profile';
 
 const timezoneOptions = TimezoneList.map(({ name }) => ({
@@ -34,8 +38,14 @@ const timezoneOptions = TimezoneList.map(({ name }) => ({
 const baseSchema = z.object({
   userName: z
     .string()
+    .trim()
     .min(1, { message: t('setting.usernameMessage') })
-    .trim(),
+    .max(NICKNAME_MAX_LENGTH, {
+      message: t('setting.usernameMaxLength', { max: NICKNAME_MAX_LENGTH }),
+    })
+    .regex(NICKNAME_PATTERN, {
+      message: t('setting.usernameInvalidCharacters'),
+    }),
   timeZone: z
     .string()
     .trim()
@@ -131,286 +141,299 @@ const ProfilePage: FC = () => {
   return (
     <UserSettingPageWrapper>
       <UserSettingBreadcrumb label="个人资料" />
-            <div className="flex-1 min-h-0 mx-3 mb-3 flex flex-col">
-      <ProfileSettingWrapperCard
-      header={
-        <header>
-          <h2 className="text-2xl font-medium text-text-primary">
-            {t('profile')}
-          </h2>
-          <p className="mt-1 text-sm text-text-secondary ">
-            {t('profileDescription')}
-          </p>
-        </header>
-      }
-    >
-      <Spotlight />
-
-      {/* Main Content */}
-      <div className="max-w-3xl space-y-11 w-3/4 p-7">
-        {/* Name */}
-        <div className="flex items-start gap-4 ">
-          <label className="w-[190px] text-sm font-medium">
-            {t('username')}
-          </label>
-          <div className="flex-1 flex items-center gap-4 min-w-60">
-            <div className="text-sm text-text-primary bg-bg-card flex-1 rounded-xl py-1.5 px-3">
-              {profile.userName}
-            </div>
-
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => handleEditClick(EditType.editName)}
-            >
-              <PenLine size={12} /> {t('edit')}
-            </Button>
-          </div>
-        </div>
-
-        {/* Avatar */}
-        <div className="flex items-start gap-4">
-          <label className="w-[190px] text-sm font-medium">{t('avatar')}</label>
-          <div className="flex items-center gap-4">
-            <AvatarUpload
-              value={profile.avatar}
-              onChange={handleAvatarUpload}
-              tips={t('avatarTip')}
-            />
-          </div>
-        </div>
-
-        {/* Time Zone */}
-        <div className="flex items-start gap-4">
-          <label className="w-[190px] text-sm font-medium">
-            {t('timezone')}
-          </label>
-          <div className="flex-1 flex items-center gap-4">
-            <div className="text-sm text-text-primary bg-bg-card flex-1 rounded-xl py-1.5 px-3 empty:before:content-['_'] empty:before:whitespace-pre">
-              {timezone}
-            </div>
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => handleEditClick(EditType.editTimeZone)}
-            >
-              <PenLine size={12} /> {t('edit')}
-            </Button>
-          </div>
-        </div>
-
-        {/* Email Address */}
-        <div className="flex items-start gap-4">
-          <label className="w-[190px] text-sm font-medium"> {t('email')}</label>
-          <div className="flex-1 flex flex-col items-start gap-2">
-            <div className="text-sm text-text-primary flex-1 rounded-md py-1.5 ">
-              {profile.email}
-            </div>
-            <span className="text-text-secondary text-xs">
-              {t('emailDescription')}
-            </span>
-          </div>
-        </div>
-
-        {/* Password */}
-        <div className="flex items-start gap-4">
-          <label className="w-[190px] text-sm font-medium">
-            {t('password')}
-          </label>
-          <div className="flex-1 flex items-center gap-4">
-            <div className="text-sm text-text-primary bg-bg-card flex-1 rounded-xl py-1.5 px-3">
-              <span className="inline-block translate-y-0.5">********</span>
-            </div>
-            <Button
-              variant="outline"
-              type="button"
-              onClick={() => handleEditClick(EditType.editPassword)}
-            >
-              <PenLine size={12} /> {t('edit')}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {editType && (
-        <Modal
-          title={modalTitle[editType]}
-          open={isEditing}
-          showfooter={false}
-          maskClosable={false}
-          titleClassName="text-base"
-          onOpenChange={(open) => {
-            if (!open) {
-              handleCancel();
-            }
-          }}
-          className="!w-[480px]"
+      <div className="flex-1 min-h-0 mx-3 mb-3 flex flex-col">
+        <ProfileSettingWrapperCard
+          header={
+            <header>
+              <h2 className="text-2xl font-medium text-text-primary">
+                {t('profile')}
+              </h2>
+              <p className="mt-1 text-sm text-text-secondary ">
+                {t('profileDescription')}
+              </p>
+            </header>
+          }
         >
-          {/* <ModalContent /> */}
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit((data) => handleSave(data as any))}
-              className="flex flex-col mt-6 mb-8 ml-2 space-y-6 "
-            >
-              {editType === EditType.editName && (
-                <FormField
-                  control={form.control}
-                  name="userName"
-                  render={({ field }) => (
-                    <FormItem className=" items-center space-y-0 ">
-                      <div className="flex flex-col w-full gap-2">
-                        <FormLabel className="text-sm text-text-secondary whitespace-nowrap">
-                          {t('username')}
-                        </FormLabel>
-                        <FormControl className="w-full">
-                          <Input
-                            placeholder=""
-                            {...field}
-                            className="bg-bg-input border-border-default"
-                          />
-                        </FormControl>
-                      </div>
-                      <div className="flex w-full pt-1">
-                        <div className="w-1/4"></div>
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              )}
+          <Spotlight />
 
-              {editType === EditType.editTimeZone && (
-                <FormField
-                  control={form.control}
-                  name="timeZone"
-                  render={({ field }) => (
-                    <FormItem className="items-center space-y-0">
-                      <div className="flex flex-col w-full gap-2">
-                        <FormLabel className="text-sm text-text-secondary whitespace-nowrap">
-                          {t('timezone')}
-                        </FormLabel>
-                        <SelectWithSearch
-                          options={timezoneOptions}
-                          placeholder="Select a timeZone"
-                          onChange={field.onChange}
-                          value={field.value}
-                        />
-                      </div>
-                      <div className="flex w-full pt-1">
-                        <div className="w-1/4"></div>
-                        <FormMessage />
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              )}
+          {/* Main Content */}
+          <div className="max-w-3xl space-y-11 w-3/4 p-7">
+            {/* Name */}
+            <div className="flex items-start gap-4 ">
+              <label className="w-[190px] text-sm font-medium">
+                {t('username')}
+              </label>
+              <div className="flex-1 flex items-center gap-4 min-w-0">
+                <div className="text-sm text-text-primary bg-bg-card flex-1 min-w-0 rounded-xl py-1.5 px-3 truncate">
+                  {profile.userName}
+                </div>
 
-              {editType === EditType.editPassword && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="currPasswd"
-                    render={({ field }) => (
-                      <FormItem className="items-center space-y-0">
-                        <div className="flex flex-col w-full gap-2">
-                          <FormLabel
-                            required
-                            className="text-sm flex text-text-secondary whitespace-nowrap"
-                          >
-                            {t('currentPassword')}
-                          </FormLabel>
-                          <FormControl className="w-full">
-                            <PasswordInput
-                              {...field}
-                              autoComplete="current-password"
-                              className="bg-bg-input border-border-default"
-                            />
-                          </FormControl>
-                        </div>
-                        <div className="flex w-full pt-1">
-                          <FormMessage />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="newPasswd"
-                    render={({ field }) => (
-                      <FormItem className=" items-center space-y-0">
-                        <div className="flex flex-col w-full gap-2">
-                          <FormLabel
-                            required
-                            className="text-sm text-text-secondary whitespace-nowrap"
-                          >
-                            {t('newPassword')}
-                          </FormLabel>
-                          <FormControl className="w-full">
-                            <PasswordInput
-                              {...field}
-                              autoComplete="new-password"
-                              className="bg-bg-input border-border-default"
-                            />
-                          </FormControl>
-                        </div>
-                        <div className="flex w-full pt-1">
-                          <FormMessage />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="confirmPasswd"
-                    render={({ field }) => (
-                      <FormItem className=" items-center space-y-0">
-                        <div className="flex flex-col w-full gap-2">
-                          <FormLabel
-                            required
-                            className="text-sm text-text-secondary whitespace-nowrap"
-                          >
-                            {t('confirmPassword')}
-                          </FormLabel>
-                          <FormControl className="w-full">
-                            <PasswordInput
-                              {...field}
-                              className="bg-bg-input border-border-default"
-                              autoComplete="new-password"
-                              onBlur={() => {
-                                form.trigger('confirmPasswd');
-                              }}
-                              onChange={(ev) => {
-                                form.setValue(
-                                  'confirmPasswd',
-                                  ev.target.value.trim(),
-                                );
-                              }}
-                            />
-                          </FormControl>
-                        </div>
-                        <div className="flex w-full pt-1">
-                          <FormMessage />
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-
-              <div className="w-full text-right space-x-4 !mt-11">
-                <Button type="reset" variant="secondary" onClick={handleCancel}>
-                  {t('cancel')}
-                </Button>
-                <Button type="submit" disabled={submitLoading}>
-                  {submitLoading && <Loader2Icon className="animate-spin" />}
-                  {t('save', { keyPrefix: 'common' })}
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => handleEditClick(EditType.editName)}
+                >
+                  <PenLine size={12} /> {t('edit')}
                 </Button>
               </div>
-            </form>
-          </Form>
-        </Modal>
-      )}
-    </ProfileSettingWrapperCard>
+            </div>
+
+            {/* Avatar */}
+            <div className="flex items-start gap-4">
+              <label className="w-[190px] text-sm font-medium">
+                {t('avatar')}
+              </label>
+              <div className="flex items-center gap-4">
+                <AvatarUpload
+                  value={profile.avatar}
+                  onChange={handleAvatarUpload}
+                  tips={t('avatarTip')}
+                />
+              </div>
+            </div>
+
+            {/* Time Zone */}
+            <div className="flex items-start gap-4">
+              <label className="w-[190px] text-sm font-medium">
+                {t('timezone')}
+              </label>
+              <div className="flex-1 flex items-center gap-4">
+                <div className="text-sm text-text-primary bg-bg-card flex-1 rounded-xl py-1.5 px-3 empty:before:content-['_'] empty:before:whitespace-pre">
+                  {timezone}
+                </div>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => handleEditClick(EditType.editTimeZone)}
+                >
+                  <PenLine size={12} /> {t('edit')}
+                </Button>
+              </div>
+            </div>
+
+            {/* Email Address */}
+            <div className="flex items-start gap-4">
+              <label className="w-[190px] text-sm font-medium">
+                {' '}
+                {t('email')}
+              </label>
+              <div className="flex-1 flex flex-col items-start gap-2">
+                <div className="text-sm text-text-primary flex-1 rounded-md py-1.5 ">
+                  {profile.email}
+                </div>
+                <span className="text-text-secondary text-xs">
+                  {t('emailDescription')}
+                </span>
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="flex items-start gap-4">
+              <label className="w-[190px] text-sm font-medium">
+                {t('password')}
+              </label>
+              <div className="flex-1 flex items-center gap-4">
+                <div className="text-sm text-text-primary bg-bg-card flex-1 rounded-xl py-1.5 px-3">
+                  <span className="inline-block translate-y-0.5">********</span>
+                </div>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => handleEditClick(EditType.editPassword)}
+                >
+                  <PenLine size={12} /> {t('edit')}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {editType && (
+            <Modal
+              title={modalTitle[editType]}
+              open={isEditing}
+              showfooter={false}
+              maskClosable={false}
+              titleClassName="text-base"
+              onOpenChange={(open) => {
+                if (!open) {
+                  handleCancel();
+                }
+              }}
+              className="!w-[480px]"
+            >
+              {/* <ModalContent /> */}
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit((data) =>
+                    handleSave(data as any),
+                  )}
+                  className="flex flex-col mt-6 mb-8 ml-2 space-y-6 "
+                >
+                  {editType === EditType.editName && (
+                    <FormField
+                      control={form.control}
+                      name="userName"
+                      render={({ field }) => (
+                        <FormItem className=" items-center space-y-0 ">
+                          <div className="flex flex-col w-full gap-2">
+                            <FormLabel className="text-sm text-text-secondary whitespace-nowrap">
+                              {t('username')}
+                            </FormLabel>
+                            <FormControl className="w-full">
+                              <Input
+                                placeholder=""
+                                maxLength={NICKNAME_MAX_LENGTH}
+                                {...field}
+                                className="bg-bg-input border-border-default"
+                              />
+                            </FormControl>
+                          </div>
+                          <div className="flex w-full pt-1">
+                            <FormMessage />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {editType === EditType.editTimeZone && (
+                    <FormField
+                      control={form.control}
+                      name="timeZone"
+                      render={({ field }) => (
+                        <FormItem className="items-center space-y-0">
+                          <div className="flex flex-col w-full gap-2">
+                            <FormLabel className="text-sm text-text-secondary whitespace-nowrap">
+                              {t('timezone')}
+                            </FormLabel>
+                            <SelectWithSearch
+                              options={timezoneOptions}
+                              placeholder="Select a timeZone"
+                              onChange={field.onChange}
+                              value={field.value}
+                            />
+                          </div>
+                          <div className="flex w-full pt-1">
+                            <div className="w-1/4"></div>
+                            <FormMessage />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {editType === EditType.editPassword && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="currPasswd"
+                        render={({ field }) => (
+                          <FormItem className="items-center space-y-0">
+                            <div className="flex flex-col w-full gap-2">
+                              <FormLabel
+                                required
+                                className="text-sm flex text-text-secondary whitespace-nowrap"
+                              >
+                                {t('currentPassword')}
+                              </FormLabel>
+                              <FormControl className="w-full">
+                                <PasswordInput
+                                  {...field}
+                                  autoComplete="current-password"
+                                  className="bg-bg-input border-border-default"
+                                />
+                              </FormControl>
+                            </div>
+                            <div className="flex w-full pt-1">
+                              <FormMessage />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="newPasswd"
+                        render={({ field }) => (
+                          <FormItem className=" items-center space-y-0">
+                            <div className="flex flex-col w-full gap-2">
+                              <FormLabel
+                                required
+                                className="text-sm text-text-secondary whitespace-nowrap"
+                              >
+                                {t('newPassword')}
+                              </FormLabel>
+                              <FormControl className="w-full">
+                                <PasswordInput
+                                  {...field}
+                                  autoComplete="new-password"
+                                  className="bg-bg-input border-border-default"
+                                />
+                              </FormControl>
+                            </div>
+                            <div className="flex w-full pt-1">
+                              <FormMessage />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="confirmPasswd"
+                        render={({ field }) => (
+                          <FormItem className=" items-center space-y-0">
+                            <div className="flex flex-col w-full gap-2">
+                              <FormLabel
+                                required
+                                className="text-sm text-text-secondary whitespace-nowrap"
+                              >
+                                {t('confirmPassword')}
+                              </FormLabel>
+                              <FormControl className="w-full">
+                                <PasswordInput
+                                  {...field}
+                                  className="bg-bg-input border-border-default"
+                                  autoComplete="new-password"
+                                  onBlur={() => {
+                                    form.trigger('confirmPasswd');
+                                  }}
+                                  onChange={(ev) => {
+                                    form.setValue(
+                                      'confirmPasswd',
+                                      ev.target.value.trim(),
+                                    );
+                                  }}
+                                />
+                              </FormControl>
+                            </div>
+                            <div className="flex w-full pt-1">
+                              <FormMessage />
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+
+                  <div className="w-full text-right space-x-4 !mt-11">
+                    <Button
+                      type="reset"
+                      variant="secondary"
+                      onClick={handleCancel}
+                    >
+                      {t('cancel')}
+                    </Button>
+                    <Button type="submit" disabled={submitLoading}>
+                      {submitLoading && (
+                        <Loader2Icon className="animate-spin" />
+                      )}
+                      {t('save', { keyPrefix: 'common' })}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </Modal>
+          )}
+        </ProfileSettingWrapperCard>
       </div>
     </UserSettingPageWrapper>
   );

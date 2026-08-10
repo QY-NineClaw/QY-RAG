@@ -105,7 +105,7 @@ export default defineConfig(({ mode }) => {
         changeOrigin: true,
         ws: true,
       },
-      '^(/api/v1/users)|^(/api/v1/auth)|^(/api/v1/users/me)|^(/api/v1/system/config)|^(/api/v1/system/version)|^(/api/v1/tenants)|^(/api/v1/chats)|^(/api/v1/searches)|^(/api/v1/files)|^(/api/v1/agents$)|^(/api/v1/agents/[^/]+/versions$)|^(/api/v1/agents/[^/]+/versions/[^/]+$)':
+      '^(/api/v1/users)|^(/api/v1/auth)|^(/api/v1/system/config)|^(/api/v1/system/version)|^(/api/v1/tenants)|^(/api/v1/chats)|^(/api/v1/searches)|^(/api/v1/files)|^(/api/v1/agents)':
         {
           target: createProxyTarget(proxyHost, 9384),
           changeOrigin: true,

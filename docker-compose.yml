@@ -90,7 +90,7 @@ services:
     restart: unless-stopped
 
   ragflow:
-    image: qy-rag:v0.26.0
+    image: qy-rag:v0.26.1
     depends_on:
       qy-postgres:
         condition: service_healthy

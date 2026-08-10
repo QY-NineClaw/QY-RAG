@@ -20,7 +20,6 @@ import {
 } from '@/interfaces/database/agent';
 import { IReferenceObject } from '@/interfaces/database/chat';
 import { formatDate } from '@/utils/date';
-import { useQueryClient } from '@tanstack/react-query';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
@@ -53,7 +52,6 @@ const AgentLogPage: React.FC = () => {
   const { navigateToAgents, navigateToAgent } = useNavigatePage();
   const { flowDetail: agentDetail } = useFetchDataOnMount();
   const { id: canvasId } = useParams();
-  const queryClient = useQueryClient();
   const init = {
     keywords: '',
     from_date: getStartOfToday(),
@@ -176,7 +174,7 @@ const AgentLogPage: React.FC = () => {
     });
   };
 
-  const handleSearch = () => {
+  const handleSearch = (overrides: Partial<typeof searchParams> = {}) => {
     setSearchParams((pre) => {
       return {
         ...pre,
@@ -187,16 +185,14 @@ const AgentLogPage: React.FC = () => {
         orderby: sortConfig?.orderby || '',
         desc: sortConfig?.desc as boolean,
         keywords: keywords,
+        ...overrides,
       };
     });
   };
 
   const handleClickSearch = () => {
-    setPagination({ ...pagination, current: 1 });
-    handleSearch();
-    queryClient.invalidateQueries({
-      queryKey: ['fetchAgentLog'],
-    });
+    setPagination((pre) => ({ ...pre, current: 1 }));
+    handleSearch({ page: 1, keywords });
   };
   useEffect(() => {
     handleSearch();
@@ -232,6 +228,8 @@ const AgentLogPage: React.FC = () => {
       to_date: searchParams.to_date,
       orderby: searchParams.orderby,
       desc: searchParams.desc,
+      page: pagination.current,
+      page_size: pagination.pageSize,
     });
   };
 
@@ -241,7 +239,9 @@ const AgentLogPage: React.FC = () => {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink onClick={navigateToAgents}>Agent</BreadcrumbLink>
+              <BreadcrumbLink onClick={navigateToAgents}>
+                {t('flow.agent')}
+              </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -251,21 +251,25 @@ const AgentLogPage: React.FC = () => {
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
-              <BreadcrumbPage>Log</BreadcrumbPage>
+              <BreadcrumbPage>{t('flow.log')}</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
       </PageHeader>
       <div className="flex-1 min-h-0 flex flex-col mx-3 mb-3 bg-bg-base rounded-3xl overflow-hidden">
         <div className="flex justify-between items-center px-5 py-3">
-          <h1 className="text-base font-semibold text-text-primary">Log</h1>
+          <h1 className="text-base font-semibold text-text-primary">
+            {t('flow.log')}
+          </h1>
 
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
               <Button onClick={onExportClick} loading={exportLoading}>
                 {t('flow.export')}
               </Button>
-              <span className="text-sm text-text-secondary">ID/Title</span>
+              <span className="text-sm text-text-secondary">
+                {`${t('flow.id')}/${t('flow.logTitle')}`}
+              </span>
               <SearchInput
                 value={keywords}
                 onChange={(e) => setKeywords(e.target.value)}
@@ -273,7 +277,9 @@ const AgentLogPage: React.FC = () => {
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="whitespace-nowrap text-sm text-text-secondary">Latest Date</span>
+              <span className="whitespace-nowrap text-sm text-text-secondary">
+                {t('flow.latestDate')}
+              </span>
               <DatePickerWithRange
                 required
                 selected={currentDate}
@@ -283,8 +289,10 @@ const AgentLogPage: React.FC = () => {
                 }
               />
             </div>
-            <Button onClick={handleClickSearch}>Search</Button>
-            <Button variant="outline" onClick={handleReset}>Reset</Button>
+            <Button onClick={handleClickSearch}>{t('common.search')}</Button>
+            <Button variant="outline" onClick={handleReset}>
+              {t('common.reset')}
+            </Button>
           </div>
         </div>
         <div className="flex-1 min-h-0 overflow-auto px-5">
@@ -294,14 +302,21 @@ const AgentLogPage: React.FC = () => {
                 {columns.map((column) => (
                   <TableHead
                     key={column.dataIndex}
-                    onClick={column.sortable ? () => handleSort(column.dataIndex) : undefined}
+                    onClick={
+                      column.sortable
+                        ? () => handleSort(column.dataIndex)
+                        : undefined
+                    }
                     className={column.sortable ? 'cursor-pointer' : ''}
                   >
                     <div className="flex items-center">
                       {column.title}
-                      {column.sortable && sortConfig?.orderby === column.dataIndex && (
-                        <span className="ml-1">{sortConfig.desc ? '↓' : '↑'}</span>
-                      )}
+                      {column.sortable &&
+                        sortConfig?.orderby === column.dataIndex && (
+                          <span className="ml-1">
+                            {sortConfig.desc ? '↓' : '↑'}
+                          </span>
+                        )}
                     </div>
                   </TableHead>
                 ))}
@@ -310,12 +325,18 @@ const AgentLogPage: React.FC = () => {
             <TableBody>
               {loading && (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
-                    <Spin size="large"><span className="sr-only">Loading...</span></Spin>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    <Spin size="large">
+                      <span className="sr-only">Loading...</span>
+                    </Spin>
                   </TableCell>
                 </TableRow>
               )}
-              {!loading && data?.map((item) => (
+              {!loading &&
+                data?.map((item) => (
                   <TableRow
                     key={item.id}
                     onClick={() => {
@@ -338,8 +359,11 @@ const AgentLogPage: React.FC = () => {
                 ))}
               {!loading && (!data || data.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center text-text-secondary">
-                    No data
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center text-text-secondary"
+                  >
+                    {t('common.noData')}
                   </TableCell>
                 </TableRow>
               )}
