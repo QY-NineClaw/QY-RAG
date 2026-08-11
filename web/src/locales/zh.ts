@@ -558,6 +558,10 @@ export default {
       randomSeedTip:
         '种子是伪随机算法的起点，它确保在不同运行中产生相同的输出，从而保证可重复性。',
       datasetDescription: '你的知识库描述。',
+      globalIndexModel: '索引模型',
+      globalIndexModelTip:
+        '用于生成知识图谱、RAPTOR、自动元数据、自动关键词和自动问题。模型性能会影响生成质量。',
+      overlappedPercent: '重叠百分比（%）',
       overlappedPercentTip: '相邻两个块之间的重叠百分比',
       settings: '设置',
       autoMetadataTip:
@@ -570,6 +574,8 @@ export default {
       mineruParseMethod: '解析方法',
       mineruParseMethodTip:
         'PDF 解析方法：auto（自动检测）、txt（文本提取）、ocr（光学字符识别）',
+      mineruLanguage: 'OCR 语言',
+      mineruLanguageTip: '用于 MinerU OCR 的首选语言。',
       mineruFormulaEnable: '公式识别',
       mineruFormulaEnableTip:
         '启用公式识别。注意：对于西里尔文档可能无法正常工作。',
@@ -599,6 +605,7 @@ export default {
       dataSource: '数据源',
       linkSourceSetTip: '管理与此知识库的数据源链接',
       linkDataSource: '链接数据源',
+      tocExtraction: '目录增强',
       tocExtractionTip:
         '对于已有的chunk生成层级结构的目录信息（每个文件一个目录）。在查询时，激活`Page Index`后，系统会用大模型去判断用户问题和哪些目录项相关，从而找到相关的chunk。',
       deleteGenerateModalContent: `
@@ -621,11 +628,15 @@ export default {
       dataPipeline: '切换或配置 ingestion pipeline。',
       linkDataPipeline: '关联pipeline',
       enableAutoGenerate: '是否启用自动生成',
+      enableAutoGenerateTip:
+        '启用后，系统将在文档解析时自动生成相应的索引内容。',
       teamPlaceholder: '请选择团队',
       dataFlowPlaceholder: '请选择pipeline',
       buildItFromScratch: '去Scratch构建',
       dataFlow: 'pipeline',
+      dataFlowTip: '选择用于处理文档的数据管道。',
       parseType: '解析方法',
+      parseTypeTip: '选择内置解析方法或自定义数据管道。',
       manualSetup: '选择pipeline',
       builtIn: '内置',
       titleDescription: '在这里更新您的记忆配置，特别是大语言模型和提示词。',
@@ -638,6 +649,7 @@ export default {
       languagePlaceholder: '请输入语言',
       permissions: '权限',
       embeddingModel: '嵌入模型',
+      llmModel: '大语言模型',
       chunkTokenNumber: '建议文本块大小',
       chunkTokenNumberMessage: '块Token数是必填项',
       embeddingModelTip:
@@ -653,6 +665,38 @@ export default {
       chinese: '中文',
       embeddingModelPlaceholder: '请选择嵌入模型',
       chunkMethodPlaceholder: '请选择分块方法',
+      portugueseBr: '葡萄牙语（巴西）',
+      vietnamese: '越南语',
+      tableColumnMode: '列处理模式',
+      tableColumnModeAuto: '自动',
+      tableColumnModeManual: '手动',
+      tableColumnModeAutoDescription:
+        '所有列都会写入文本块，并同时作为元数据保存（系统默认）。',
+      tableColumnRoles: '列用途',
+      tableColumnRolesTip:
+        '选择每一列用于索引、仅作为元数据，或同时用于两者。更改将应用于后续解析。',
+      tableColumnRoleIndexing: '索引',
+      tableColumnRoleMetadata: '元数据',
+      tableColumnRoleBoth: '两者',
+      tableColumnRolesEmpty: '请先上传并解析 CSV 或 Excel 文件，再配置列用途。',
+      tableColumnRolesReparseTip:
+        '现有文档需要重新解析后，新的列用途才会生效。',
+      parserLabel: {
+        naive: '通用',
+        qa: '问答',
+        resume: '简历',
+        manual: '手册',
+        table: '表格',
+        paper: '论文',
+        book: '书籍',
+        laws: '法律',
+        presentation: '演示文稿',
+        picture: '图片',
+        one: '单文本块',
+        audio: '音频',
+        email: '邮件',
+        tag: '标签',
+      },
       save: '保存',
       me: '只有我',
       team: '团队',
@@ -745,6 +789,8 @@ export default {
       </p><p>
       如果你要总结的东西需要一篇文章的全部上下文，并且所选LLM的上下文长度覆盖了文档长度，你可以尝试这种方法。
       </p>`,
+      audio: `<p>支持音频文件。</p><p>系统会将音频内容转写为文本，并根据转写结果生成可检索的文本块。</p>`,
+      email: `<p>支持邮件文件。</p><p>系统会提取邮件主题、正文等内容，并将其转换为可检索的文本块。</p>`,
       knowledgeGraph: `<p>支持的文件格式为<b>DOCX、EXCEL、PPT、IMAGE、PDF、TXT、MD、JSON、EML</b>
 
 <p>文件分块后，使用分块提取整个文档的知识图谱和思维导图。此方法将简单的方法应用于分块文件：
@@ -828,6 +874,8 @@ NER：使用 spaCy NER 和基于规则的关键词提取来抽取实体和关系
       community: '社区报告生成',
       communityTip:
         '区块被聚集成层次化的社区，实体和关系通过更高抽象层次将每个部分连接起来。然后，我们使用 LLM 生成每个社区的摘要，称为社区报告。更多信息：https://www.microsoft.com/en-us/research/blog/graphrag-improving-global-search-via-dynamic-community-selection/',
+      theDocumentBeingParsedCannotBeDeleted: '正在解析的文档不能删除',
+      lastWeek: '过去一周',
       top: '前n条',
     },
     chunk: {

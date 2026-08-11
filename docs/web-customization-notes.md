@@ -11,6 +11,7 @@
 - 以官方 `v0.26.0` 为三方合并基线，引入 `v0.26.1` 的 Web 功能和依赖更新。
 - 新增聊天渠道管理：路由为 `/user-setting/chat-channel`，入口位于 Dashboard 设置导航。
 - 聊天渠道页面使用现有的 `UserSettingPageWrapper`、面包屑、圆角内容卡片和 QY 按钮体系，保持 iframe 独立入口风格。
+- 补齐数据集配置的中文资源，包括目录增强、索引模型、表格列用途、解析器名称、MinerU 语言等，避免界面直接显示 `knowledgeConfiguration.*` key。
 - 引入模型类型编辑、聊天设置重组、文档预览升级、Agent DSL 导入导出与相关修复。
 - 保留自定义路由加载动画、扁平化用户设置路由、模块内面包屑及 Dataflow 全屏模态框。
 - Docker 基础镜像、前端依赖、入口脚本和数据库 migration 版本同步到 `v0.26.1`。

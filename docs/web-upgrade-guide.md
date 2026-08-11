@@ -113,6 +113,8 @@ npm run build
 
 如官方新增单元测试，应同步测试配置并运行相应用例。如全量 TypeScript 或 lint 存在历史问题，要把历史问题与本次新增问题分开记录。
 
+对官方新增或修改的 i18n key，还需比较主语言资源的命名空间和嵌套结构。页面直接显示 `knowledgeConfiguration.xxx` 一类文本，通常表示当前语言缺键、keyPrefix 不一致或嵌套层级错误。
+
 ### 4.2 Docker 点击验证
 
 1. 新增入口能否从 Dashboard 打开。

@@ -627,6 +627,8 @@ Example: A 1 KB message with 1024-dim embedding uses ~9 KB. The 5 MB default lim
       mineruParseMethod: 'Parse method',
       mineruParseMethodTip:
         'Method for parsing PDF: auto (automatic detection), txt (text extraction), ocr (optical character recognition)',
+      mineruLanguage: 'OCR language',
+      mineruLanguageTip: 'Preferred OCR language for MinerU.',
       mineruFormulaEnable: 'Formula recognition',
       mineruFormulaEnableTip:
         'Enable formula recognition. Note: This may not work correctly for Cyrillic documents.',
@@ -681,11 +683,15 @@ Example: A 1 KB message with 1024-dim embedding uses ~9 KB. The 5 MB default lim
       dataPipeline: 'Switch or configure ingestion pipeline.',
       linkDataPipeline: 'Link ingestion pipeline',
       enableAutoGenerate: 'Enable auto generate',
+      enableAutoGenerateTip:
+        'Automatically generate the corresponding index content while parsing documents.',
       teamPlaceholder: 'Please select a team.',
       dataFlowPlaceholder: 'Please select a pipeline.',
       buildItFromScratch: 'Build it from scratch',
       dataFlow: 'Pipeline',
+      dataFlowTip: 'Select the data pipeline used to process documents.',
       parseType: 'Parse type',
+      parseTypeTip: 'Choose the built-in parser or a custom data pipeline.',
       manualSetup: 'Pipeline',
       builtIn: 'Built-in',
       titleDescription:
@@ -699,6 +705,7 @@ Example: A 1 KB message with 1024-dim embedding uses ~9 KB. The 5 MB default lim
       languagePlaceholder: 'Please input your language!',
       permissions: 'Permissions',
       embeddingModel: 'Embedding model',
+      llmModel: 'Large language model',
       chunkTokenNumber: 'Recommended chunk size',
       chunkTokenNumberMessage: 'Chunk token number for text is required',
       embeddingModelTip:
@@ -832,6 +839,8 @@ Example: A 1 KB message with 1024-dim embedding uses ~9 KB. The 5 MB default lim
     </p><p>
     Applicable when you require the LLM to summarize the entire document, provided it can handle that amount of context length.
     </p>`,
+      audio: `<p>Audio files are supported.</p><p>The system transcribes the audio and creates searchable chunks from the resulting text.</p>`,
+      email: `<p>Email files are supported.</p><p>The system extracts content such as the subject and body, then converts it into searchable chunks.</p>`,
       knowledgeGraph: `<p>Supported file formats are <b>DOCX, EXCEL, PPT, IMAGE, PDF, TXT, MD, JSON, EML</b>
 
 <p>This approach chunks files using the 'naive'/'General' method. It splits a document into segments and then combines adjacent segments until the token count exceeds the threshold specified by 'Chunk token number for text', at which point a chunk is created.</p>
