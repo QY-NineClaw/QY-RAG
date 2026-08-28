@@ -190,7 +190,7 @@ do_export() {
 
   if [ "$PACK_MODE" = "2" ]; then
     # ── 文件命名（循环，支持返回重填）────────────────────────────────
-    local default_name="nineclaw-images-bundle-$(date '+%Y%m%d').tar.gz"
+    local default_name="qy-rag-images-bundle-$(date '+%Y%m%d').tar.gz"
     local bundle="$OUTPUT_DIR/$default_name"
     printf '%s\n' "XXX" "0" "正在将 $total 个镜像打包为单包..." "XXX"
     docker save "${SELECTED_IMAGES[@]}" 2>>"$LOG_FILE" | gzip > "$bundle" &
