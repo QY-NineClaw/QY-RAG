@@ -17,6 +17,10 @@ import os
 import json
 import logging
 import asyncio
+import math
+import struct
+import tempfile
+import wave
 
 from common.constants import LLMType, ActiveStatusEnum
 from common.misc_utils import get_uuid
@@ -50,6 +54,43 @@ def _normalize_provider_base_url(provider_name: str, base_url: str | None):
         base_url += "/v1"
     return base_url
 
+
+def _make_speech2text_probe_wav() -> str:
+    fd, path = tempfile.mkstemp(suffix=".wav")
+    os.close(fd)
+    with wave.open(path, "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(16000)
+        frames = b"".join(
+            struct.pack("<h", int(12000 * math.sin(2 * math.pi * 440 * i / 16000)))
+            for i in range(16000)
+        )
+        wav_file.writeframes(frames)
+    return path
+
+
+async def _verify_speech2text_model(mdl, timeout_seconds: int):
+    # Only OpenAI-compatible clients share a safe synchronous transcription
+    # contract here. Other Seq2txt implementations may long-poll or inherit a
+    # Base implementation that is not usable before provider-specific setup.
+    if not (hasattr(mdl, "client") and hasattr(mdl.client, "audio")):
+        return None
+
+    path = _make_speech2text_probe_wav()
+    try:
+        text, token_count = await asyncio.wait_for(
+            asyncio.to_thread(mdl.transcription, path),
+            timeout=timeout_seconds,
+        )
+        if isinstance(text, str) and text.startswith("**ERROR**"):
+            raise RuntimeError(text)
+        return text, token_count
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
 
 
 def _factory_llm_name(llm: dict) -> str:
@@ -313,9 +354,6 @@ async def create_provider_instance(tenant_id: str, provider_name: str, instance_
     api_key_str = ""
     if api_key:
         api_key_str = api_key if isinstance(api_key, str) else json.dumps(api_key)
-        same_key_instance = TenantModelInstanceService.get_by_provider_id_and_api_key(provider_obj.id, api_key_str)
-        if same_key_instance:
-            return False, f"Already exist instance: {same_key_instance.instance_name} with api_key {api_key}"
     success, msg = await verify_api_key(provider_name, api_key, base_url, region, model_info)
     if not success:
         return False, msg
@@ -537,7 +575,8 @@ async def verify_api_key(provider_name: str, api_key: str|dict, base_url: str=No
                 msg += f"\n{unsupported_msg}"
                 continue
             try:
-                Seq2txtModel[provider_name](key=api_key_str, model_name=llm["llm_name"], base_url=base_url)
+                mdl = Seq2txtModel[provider_name](key=api_key_str, model_name=llm["llm_name"], base_url=base_url)
+                await _verify_speech2text_model(mdl, timeout_seconds)
                 asr_passed = True
             except Exception as e:
                 logging.exception(
@@ -610,6 +649,57 @@ def drop_provider_instances(tenant_id: str, provider_name: str, instance_names: 
     return True, None
 
 
+def _hybrid_get_instance_models(provider_name: str, instance_id: str):
+    # List all models from the LLM dictionary for this provider
+    factory_info = [f for f in FACTORY_LLM_INFOS if f["name"] == provider_name]
+    if not factory_info:
+        return False, f"Provider '{provider_name}' not found"
+
+    # Get model records for this instance from tenant_model table
+    model_records = TenantModelService.get_models_by_instance_id(instance_id)
+    # Build a map of model_name -> status, type
+    model_info_map: dict = {}
+    model_unsupported_type_map = {}
+    for model_record in model_records:
+        if model_record.status == ActiveStatusEnum.UNSUPPORTED.value:
+            if model_unsupported_type_map.get(model_record.model_name):
+                model_unsupported_type_map[model_record.model_name].append(model_record.model_type)
+            else:
+                model_unsupported_type_map[model_record.model_name] = [model_record.model_type]
+            continue
+        if model_info_map.get(model_record.model_name):
+            model_info_map[model_record.model_name]["model_type"].append(model_record.model_type)
+        else:
+            model_info_map[model_record.model_name] = {
+                "status": model_record.status,
+                "model_type": [model_record.model_type],
+                "extra": model_record.extra
+            }
+
+    llms = factory_info[0].get("llm", [])
+    models = []
+    for llm in llms:
+        models.append({
+            "name": llm["llm_name"],
+            "model_type": list(
+                set(_factory_model_types(llm) + model_info_map.get(llm["llm_name"], {}).get("model_type", [])) - set(model_unsupported_type_map.get(llm["llm_name"], []))
+            ),
+            "max_tokens": llm.get("max_tokens"),
+            "status": model_info_map.get(llm["llm_name"], {}).get("status", "active"),
+        })
+    factory_models = [m["name"] for m in models]
+    for model_name, model_info_dict in model_info_map.items():
+        if model_name not in factory_models:
+            extra_fields = json.loads(model_info_dict["extra"]) if model_info_dict["extra"] else {}
+            models.append({
+                "name": model_name,
+                "model_type": set(model_info_dict["model_type"]) - set(model_unsupported_type_map.get(model_name, [])),
+                "max_tokens": extra_fields.get("max_tokens", 8192),
+                "status": model_info_dict["status"],
+            })
+    return True, models
+
+
 def list_instance_models(tenant_id: str, provider_name: str, instance_name: str, supported_only: bool = False):
     """
     List models for a provider instance.
@@ -644,47 +734,40 @@ def list_instance_models(tenant_id: str, provider_name: str, instance_name: str,
     if not instance_obj:
         return False, f"No instance found for provider '{provider_name}' and instance '{instance_name}'"
 
-    # Get model records for this instance from tenant_model table
-    model_records = TenantModelService.get_models_by_instance_id(instance_obj.id)
-    # Build a map of model_name -> status, type
-    model_info_map: dict = {}
-    for model_record in model_records:
-        if model_info_map.get(model_record.model_name):
-            model_info_map[model_record.model_name]["model_type"].append(model_record.model_type)
-        else:
-            model_info_map[model_record.model_name] = {
-                "status": model_record.status,
-                "model_type": [model_record.model_type],
-                "extra": model_record.extra
+    return _hybrid_get_instance_models(provider_name, instance_obj.id)
+
+
+def update_instance_models(tenant_id: str, provider_name: str, instance_name: str, model_names: list, model_types: list):
+    if not model_names or not model_types:
+        return False, "model_name and model_type are required"
+
+    provider_obj = TenantModelProviderService.get_by_tenant_id_and_provider_name(tenant_id, provider_name)
+    if not provider_obj:
+        return False, f"No provider found for provider '{provider_name}'"
+    instance_obj = TenantModelInstanceService.get_by_provider_id_and_instance_name(provider_obj.id, instance_name)
+    if not instance_obj:
+        return False, f"No instance found for provider '{provider_name}' and instance '{instance_name}'"
+
+    found, models = _hybrid_get_instance_models(provider_name, instance_obj.id)
+    if not found:
+        return False, models
+
+    model_info_map = {model["name"]: model for model in models}
+    not_exist_models = set(model_names) - set(model_info_map.keys())
+    if not_exist_models:
+        return False, f"Models {not_exist_models} not found for provider '{provider_name}' and instance '{instance_name}'"
+    for model_name in model_names:
+        model_info = model_info_map.get(model_name, {})
+        TenantModelService.upsert_model_type(
+            provider_obj.id,
+            instance_obj.id,
+            model_name,
+            {
+                "add": list(set(model_types) - set(model_info["model_type"])),
+                "delete": list(set(model_info["model_type"]) - set(model_types))
             }
-
-    # List all models from the LLM dictionary for this provider
-    factory_info = [f for f in FACTORY_LLM_INFOS if f["name"] == provider_name]
-    if not factory_info:
-        return False, f"Provider '{provider_name}' not found"
-
-    llms = factory_info[0].get("llm", [])
-    models = []
-    for llm in llms:
-        models.append({
-            "name": llm["llm_name"],
-            "model_type": list(
-                dict.fromkeys(_factory_model_types(llm) + model_info_map.get(llm["llm_name"], {}).get("model_type", []))
-            ),
-            "max_tokens": llm.get("max_tokens"),
-            "status": model_info_map.get(llm["llm_name"], {}).get("status", "active"),
-        })
-    factory_models = [m["name"] for m in models]
-    for model_name, model_info_dict in model_info_map.items():
-        if model_name not in factory_models:
-            extra_fields = json.loads(model_info_dict["extra"]) if model_info_dict["extra"] else {}
-            models.append({
-                "name": model_name,
-                "model_type": model_info_dict["model_type"],
-                "max_tokens": extra_fields.get("max_tokens", 8192),
-                "status": model_info_dict["status"],
-            })
-    return True, models
+        )
+    return True, "success"
 
 
 def add_model_to_instance(tenant_id: str, provider_name: str, instance_name: str, model_name: str, model_type: str|list[str], max_tokens: int=8192, extra: dict=None):
@@ -758,7 +841,7 @@ def update_model_status(tenant_id: str, provider_name: str, instance_name: str, 
 
     if model_obj_list:
         # Model record exists — update its status
-        TenantModelService.batch_update_model_status([m.id for m in model_obj_list], status)
+        TenantModelService.batch_update_model_status([m.id for m in model_obj_list if m.status != ActiveStatusEnum.UNSUPPORTED.value], status)
     else:
         # Model record does not exist
         if status == ActiveStatusEnum.ACTIVE.value:
